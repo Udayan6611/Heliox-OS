@@ -72,6 +72,130 @@ Heliox OS is now fully neuro-adaptive, integrating Meta's **TRIBE v2 Cognitive E
 6. **ReAct Neural Cost Estimator:** Tasks predict aggregate cognitive demand proactively logic. If executing a plan risks exceeding mental bandwidth, JARVIS pauses.
 7. **JARVIS Intent Classifier:** Fully integrated native intent fusion classifying spoken commands against current workload intensity.
 
+## 🚀 Revolutionary TRIBE v2 Cognitive Features (v0.6.0)
+
+Heliox OS now pushes the boundaries with **7 revolutionary biologically-inspired AI features** powered by Meta's **TRIBE v2** neural model:
+
+### 1. Adaptive Biometric Learning Loop
+Track user's physiological patterns over weeks (time-of-day productivity, stress cycles). Create personalized "cognitive fingerprints" that predict optimal interaction times. Implements a closed-loop feedback system where user responses refine the TRIBE predictions.
+
+```python
+from pilot.cognitive.biometric_loop import BiometricLearningLoop
+
+loop = BiometricLearningLoop(user_id="user")
+loop.record_cognitive_sample(attention=0.7, stress=0.3, load=0.5)
+recommendation = loop.get_interaction_recommendation()
+print(recommendation.recommended, recommendation.interaction_type)
+```
+
+### 2. Ambient Intelligence Mode
+Instead of reactive commands, Heliox proactively suggests actions based on predicted cognitive state. Example: *"You've been on this task for 2 hours with increasing stress — want me to schedule a break?"*
+
+```python
+from pilot.cognitive.ambient_intelligence import AmbientIntelligenceEngine
+
+ambient = AmbientIntelligenceEngine(biometric_loop)
+await ambient.update_cognitive_state(attention=0.8, stress=0.6, load=0.7)
+# Automatically generates proactive suggestions based on trends
+```
+
+### 3. Multi-Modal Neural Bridge
+Extend beyond screen vision — integrate webcam eye-tracking, audio tone analysis, keyboard/mouse dynamics. Build a unified "neural workspace" that predicts what the user will need before they ask.
+
+```python
+from pilot.cognitive.neural_bridge import NeuralBridge
+
+bridge = NeuralBridge()
+bridge.record_keystroke()
+bridge.record_mouse_move(x, y)
+workspace = bridge.compute_workspace()
+print(workspace.cognitive_state, workspace.predicted_need)
+```
+
+### 4. Cognitive Offloading
+When load > 80%, automatically surface "memory anchors" — key info from recent actions. Let Heliox absorb cognitive burden by remembering complex multi-step workflows.
+
+```python
+from pilot.cognitive.cognitive_offload import CognitiveOffloader
+
+offloader = CognitiveOffloader()
+offloader.update_load(0.85)  # Triggers offload surface
+surface = offloader.get_offload_surface()
+print(surface["anchors"], surface["workflows"])
+```
+
+### 5. Evolving Persona Architecture
+Move from static persona.md to a living "neural avatar" that changes daily based on cognitive patterns. The AI's communication style adapts: concise when stressed, detailed when relaxed.
+
+```python
+from pilot.cognitive.evolving_persona import EvolvingPersonaEngine
+
+persona = EvolvingPersonaEngine(user_id="user")
+persona.record_interaction(attention=0.7, stress=0.3, load=0.5)
+greeting = persona.get_greeting()  # "Good afternoon! Ready to tackle anything?"
+print(persona.get_ui_config())  # Adapts UI based on state
+```
+
+### 6. Cross-Device Cognitive Handoff
+If TRIBE detects high load on desktop, suggest continuing on mobile with context transfer. Build a "cognitive state cloud" that follows the user across devices.
+
+```python
+from pilot.cognitive.cognitive_handoff import CognitiveHandoffEngine
+
+handoff = CognitiveHandoffEngine(device_name="desktop")
+handoff.capture_snapshot(attention=0.8, stress=0.6, load=0.7)
+handoff.sync_to_cloud()
+suggestion = handoff.get_handoff_suggestion(load=0.85, stress=0.3)
+```
+
+### 7. Quantum-Ready Architecture
+Design the cognitive pipeline to be model-agnostic — swap TRIBE for future neural models. Create standard cognitive APIs that other developers can build on.
+
+```python
+from pilot.cognitive.quantum_cognitive import create_pipeline, QuantumCognitivePipeline
+
+pipeline = create_pipeline()
+output = await pipeline.predict("user working on complex task")
+print(output.attention_score, output.stress_level, output.cognitive_load)
+
+# Switch models at runtime
+pipeline.set_active_model("gpt_neuro")  # Future model support
+```
+
+### Unified Cognitive Hub
+
+All features are wrapped in a single interface:
+
+```python
+from pilot.cognitive.hub import CognitiveHub
+
+hub = CognitiveHub()
+state = await hub.analyze("user is coding")
+
+# All features accessible
+print(f"Attention: {state.attention}, Stress: {state.stress}")
+print(f"Optimal: {state.optimal_interaction}")
+print(f"Overloaded: {state.is_overloaded}")
+print(hub.get_greeting())  # Adaptive greeting
+print(hub.get_offload_surface())  # Memory anchors
+```
+
+### TRIBE-Powered
+
+The **QuantumCognitivePipeline** automatically uses TRIBE v2 when available:
+
+```
+Available Models:
+  - Meta TRIBE v2 (tribe_v2)
+    Available: True
+    Capabilities: ATTENTION_PREDICTION, STRESS_DETECTION, LOAD_ESTIMATION
+    Avg Latency: ~50ms
+```
+
+When TRIBE is unavailable, it gracefully falls back to heuristic models.
+
+---
+
 ## 🧠 Multi-Agent Orchestrator
 
 Heliox OS uses a **modular multi-agent architecture** where specialized agents collaborate to solve complex tasks:
@@ -483,7 +607,7 @@ port = 8785
 We love contributions! Whether it's adding a new gesture, fixing a bug, or building a new plugin, check out our guides to get started.
 
 1. Read our [Contributing Guide](CONTRIBUTING.md) to set up your dev environment.
-2. Check the [Good First Issues](https://github.com/VyomKulshrestha/Heliox-OS/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) tab on GitHub to find beginner-friendly tasks.
+2. Check the [Good First Issues](https://github.com/VyomKulshrestha/Heliox-OS/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) tab to find beginner-friendly tasks.
 3. Review our [Code of Conduct](CODE_OF_CONDUCT.md).
 4. Join the community discussions in [GitHub Discussions](https://github.com/VyomKulshrestha/Heliox-OS/discussions).
 

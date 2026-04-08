@@ -194,6 +194,25 @@ class PilotServer:
         except Exception:
             logger.warning("SubconsciousAgent init failed (non-critical)", exc_info=True)
 
+        # Cognitive Hub — unified TRIBE v2 cognitive features
+        try:
+            from pilot.cognitive.hub import CognitiveHub
+            from pilot.changelog import announce_new_features, mark_version_seen
+
+            self._cognitive_hub = CognitiveHub()
+            logger.info("CognitiveHub initialized with TRIBE v2")
+
+            # Check for new features and announce
+            announcement = announce_new_features()
+            if announcement:
+                logger.info("New features announcement: %s", announcement)
+                # Will be spoken by voice.py
+                self._new_features_announcement = announcement
+                mark_version_seen()
+        except Exception:
+            logger.warning("CognitiveHub init failed (non-critical)", exc_info=True)
+            self._new_features_announcement = None
+
         # Screen Vision Agent — continuous screen awareness (lazy start)
         try:
             from pilot.agents.screen_vision import ScreenVisionAgent
@@ -1184,6 +1203,14 @@ class PilotServer:
             port,
         )
         logger.info("Pilot daemon ready")
+
+        # Announce new features to connected clients
+        if hasattr(self, '_new_features_announcement') and self._new_features_announcement:
+            await asyncio.sleep(1)  # Give clients time to connect
+            await self._broadcast_notification("feature_announcement", {
+                "message": self._new_features_announcement,
+                "version": "0.6.0",
+            })
 
     async def stop(self) -> None:
         self._running = False
