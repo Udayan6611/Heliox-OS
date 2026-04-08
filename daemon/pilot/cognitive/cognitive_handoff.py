@@ -232,6 +232,7 @@ class CognitiveHandoffEngine:
     def _detect_device_type(self) -> str:
         """Detect the current device type."""
         import platform
+
         system = platform.system().lower()
 
         if system == "windows" or system == "darwin" or system == "linux":
@@ -387,7 +388,7 @@ class CognitiveHandoffEngine:
             # Check if mobile has been used recently
             for device in self._known_devices:
                 if device.device_type == "mobile" and device.is_active:
-                    return f"Your cognitive load is high ({int(load*100)}%). Want to switch to {device.device_name}?"
+                    return f"Your cognitive load is high ({int(load * 100)}%). Want to switch to {device.device_name}?"
 
         # High stress → suggest break on mobile
         if stress > 0.7:

@@ -150,6 +150,7 @@ class TribeAdapter(CognitiveModelAdapter):
     def is_available(self) -> bool:
         try:
             from tribev2 import TribeModel
+
             return True
         except ImportError:
             return False
@@ -403,9 +404,7 @@ class QuantumCognitivePipeline:
             "available_models": len(self._adapters),
             "total_requests": self._total_requests,
             "failed_requests": self._failed_requests,
-            "success_rate": (
-                (self._total_requests - self._failed_requests) / max(1, self._total_requests)
-            ),
+            "success_rate": ((self._total_requests - self._failed_requests) / max(1, self._total_requests)),
             "registered_adapters": list(self._adapters.keys()),
         }
 

@@ -301,12 +301,14 @@ class CognitiveOffloader:
         """Record an action for context."""
         now = time.time()
 
-        self._action_history.append({
-            "timestamp": now,
-            "action_type": action_type,
-            "details": details,
-            "load": self._state.current_load,
-        })
+        self._action_history.append(
+            {
+                "timestamp": now,
+                "action_type": action_type,
+                "details": details,
+                "load": self._state.current_load,
+            }
+        )
 
         # Keep last 100 actions
         if len(self._action_history) > 100:

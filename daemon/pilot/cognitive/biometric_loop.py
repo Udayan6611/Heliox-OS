@@ -29,9 +29,7 @@ logger = logging.getLogger("pilot.cognitive.biometric_loop")
 _PATTERN_WINDOW_DAYS = 7  # Look back 7 days for patterns
 _MIN_SAMPLES_FOR_PATTERN = 20  # Need at least 20 data points to establish a pattern
 _CONFIDENCE_DECAY = 0.95  # Older predictions fade in confidence
-_HOURS_TO_ANALYZE = [
-    6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23
-]  # Hours to track
+_HOURS_TO_ANALYZE = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]  # Hours to track
 _WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 # ── Data Structures ──
@@ -131,8 +129,30 @@ class BiometricStore:
         path = self._get_fingerprint_path(fp.user_id)
         data = {
             "user_id": fp.user_id,
-            "weekly_patterns": {h: {"hour": p.hour, "avg_attention": p.avg_attention, "avg_stress": p.avg_stress, "avg_load": p.avg_load, "sample_count": p.sample_count, "confidence": p.confidence, "last_updated": p.last_updated} for h, p in fp.weekly_patterns.items()},
-            "weekday_patterns": {d: {"hour": p.hour, "avg_attention": p.avg_attention, "avg_stress": p.avg_stress, "avg_load": p.avg_load, "sample_count": p.sample_count, "confidence": p.confidence, "last_updated": p.last_updated} for d, p in fp.weekday_patterns.items()},
+            "weekly_patterns": {
+                h: {
+                    "hour": p.hour,
+                    "avg_attention": p.avg_attention,
+                    "avg_stress": p.avg_stress,
+                    "avg_load": p.avg_load,
+                    "sample_count": p.sample_count,
+                    "confidence": p.confidence,
+                    "last_updated": p.last_updated,
+                }
+                for h, p in fp.weekly_patterns.items()
+            },
+            "weekday_patterns": {
+                d: {
+                    "hour": p.hour,
+                    "avg_attention": p.avg_attention,
+                    "avg_stress": p.avg_stress,
+                    "avg_load": p.avg_load,
+                    "sample_count": p.sample_count,
+                    "confidence": p.confidence,
+                    "last_updated": p.last_updated,
+                }
+                for d, p in fp.weekday_patterns.items()
+            },
             "optimal_interaction_hours": fp.optimal_interaction_hours,
             "peak_productivity_hours": fp.peak_productivity_hours,
             "recovery_hours": fp.recovery_hours,
@@ -223,9 +243,7 @@ class BiometricLearningLoop:
         self._store.save_samples(self._user_id, self._samples)
         self._store.save_fingerprint(self._fingerprint)
 
-    def _update_hourly_pattern(
-        self, hour: int, attention: float, stress: float, load: float
-    ) -> None:
+    def _update_hourly_pattern(self, hour: int, attention: float, stress: float, load: float) -> None:
         """Incrementally update hourly pattern with exponential moving average."""
         if hour not in self._fingerprint.weekly_patterns:
             self._fingerprint.weekly_patterns[hour] = HourlyPattern(hour=hour)
@@ -240,9 +258,7 @@ class BiometricLearningLoop:
         p.confidence = min(1.0, p.sample_count / _MIN_SAMPLES_FOR_PATTERN)
         p.last_updated = time.time()
 
-    def _update_weekday_pattern(
-        self, weekday: str, hour: int, attention: float, stress: float, load: float
-    ) -> None:
+    def _update_weekday_pattern(self, weekday: str, hour: int, attention: float, stress: float, load: float) -> None:
         """Update weekday-specific patterns."""
         key = f"{weekday}_{hour}"
         if key not in self._fingerprint.weekday_patterns:
@@ -283,7 +299,9 @@ class BiometricLearningLoop:
             if p.avg_load < 0.4 and p.avg_stress < 0.3:
                 recovery.append((hour, 1.0 - p.avg_load))
 
-        self._fingerprint.optimal_interaction_hours = [h for h, _ in sorted(optimal, key=lambda x: x[1], reverse=True)[:4]]
+        self._fingerprint.optimal_interaction_hours = [
+            h for h, _ in sorted(optimal, key=lambda x: x[1], reverse=True)[:4]
+        ]
         self._fingerprint.peak_productivity_hours = [h for h, _ in sorted(peak, key=lambda x: x[1], reverse=True)[:3]]
         self._fingerprint.recovery_hours = [h for h, _ in sorted(recovery, key=lambda x: x[1], reverse=True)[:3]]
 
@@ -332,7 +350,9 @@ class BiometricLearningLoop:
 
         logger.info(
             "Feedback recorded: type=%s, response=%s, weight=%.2f",
-            interaction_type, user_response, weight,
+            interaction_type,
+            user_response,
+            weight,
         )
 
     # ── Prediction API ──
@@ -344,7 +364,9 @@ class BiometricLearningLoop:
 
         # Check hourly pattern
         hour_key = f"{weekday}_{current_hour}"
-        pattern = self._fingerprint.weekday_patterns.get(hour_key) or self._fingerprint.weekly_patterns.get(current_hour)
+        pattern = self._fingerprint.weekday_patterns.get(hour_key) or self._fingerprint.weekly_patterns.get(
+            current_hour
+        )
 
         if not pattern or pattern.confidence < 0.3:
             return InteractionRecommendation(

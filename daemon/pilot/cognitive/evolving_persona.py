@@ -290,13 +290,15 @@ class EvolvingPersonaEngine:
         self._avatar.total_interactions += 1
 
         # Store interaction
-        self._today_interactions.append({
-            "timestamp": time.time(),
-            "attention": attention,
-            "stress": stress,
-            "load": load,
-            "user_response": user_response,
-        })
+        self._today_interactions.append(
+            {
+                "timestamp": time.time(),
+                "attention": attention,
+                "stress": stress,
+                "load": load,
+                "user_response": user_response,
+            }
+        )
 
     def _update_communication_style(self) -> CommunicationStyle:
         """Update communication style based on current state."""
@@ -488,6 +490,10 @@ class EvolvingPersonaEngine:
             "current_pattern": {
                 "date": self._current_daily_pattern.date if self._current_daily_pattern else None,
                 "energy": self._current_daily_pattern.energy_level if self._current_daily_pattern else None,
-                "interaction_count": self._current_daily_pattern.interaction_count if self._current_daily_pattern else 0,
-            } if self._current_daily_pattern else None,
+                "interaction_count": self._current_daily_pattern.interaction_count
+                if self._current_daily_pattern
+                else 0,
+            }
+            if self._current_daily_pattern
+            else None,
         }

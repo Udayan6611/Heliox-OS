@@ -231,10 +231,13 @@ class CognitiveHub:
                 context,
             )
             state.device_name = self._handoff._device_name
-            state.handoff_suggestion = self._handoff.get_handoff_suggestion(
-                state.load,
-                state.stress,
-            ) or ""
+            state.handoff_suggestion = (
+                self._handoff.get_handoff_suggestion(
+                    state.load,
+                    state.stress,
+                )
+                or ""
+            )
 
         state.timestamp = now
 

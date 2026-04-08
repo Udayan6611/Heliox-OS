@@ -179,16 +179,18 @@ class AmbientIntelligenceEngine:
         self._state.current_task_duration_minutes = (now - self._task_start_time) / 60.0
 
         # Record in history for pattern analysis
-        self._history.append({
-            "timestamp": now,
-            "attention": attention,
-            "stress": stress,
-            "load": load,
-            "app": app_name,
-        })
+        self._history.append(
+            {
+                "timestamp": now,
+                "attention": attention,
+                "stress": stress,
+                "load": load,
+                "app": app_name,
+            }
+        )
 
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         # Check if we should generate a suggestion
         await self._check_for_suggestions(attention, stress, load)
@@ -273,7 +275,8 @@ class AmbientIntelligenceEngine:
 
             logger.info(
                 "Ambient intelligence suggestion: type=%s, message='%s'",
-                suggestion.suggestion_type, suggestion.message,
+                suggestion.suggestion_type,
+                suggestion.message,
             )
 
             # Execute callback

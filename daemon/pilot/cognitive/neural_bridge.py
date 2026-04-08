@@ -151,7 +151,8 @@ class EyeTracker:
             dwell = 0.0
 
         gaze = GazeData(
-            x=x, y=y,
+            x=x,
+            y=y,
             dwell_time=dwell,
             is_on_screen=True,
             shift_magnitude=shift,
@@ -251,9 +252,10 @@ class AudioToneAnalyzer:
         if not audio_chunk:
             return 0.0
         import struct
+
         try:
-            samples = struct.unpack(f"{len(audio_chunk)//2}h", audio_chunk)
-            rms = (sum(s*s for s in samples) / len(samples)) ** 0.5
+            samples = struct.unpack(f"{len(audio_chunk) // 2}h", audio_chunk)
+            rms = (sum(s * s for s in samples) / len(samples)) ** 0.5
             return min(1.0, rms / 32768.0 * 2)
         except Exception:
             return 0.5
@@ -347,8 +349,11 @@ class InputDynamicsMonitor:
         recent_mouse = [(x, y, t) for x, y, t in self._mouse_movements if now - t < 10]
         if len(recent_mouse) >= 2:
             total_dist = sum(
-                ((recent_mouse[i][0] - recent_mouse[i-1][0])**2 +
-                 (recent_mouse[i][1] - recent_mouse[i-1][1])**2) ** 0.5
+                (
+                    (recent_mouse[i][0] - recent_mouse[i - 1][0]) ** 2
+                    + (recent_mouse[i][1] - recent_mouse[i - 1][1]) ** 2
+                )
+                ** 0.5
                 for i in range(1, len(recent_mouse))
             )
             time_span = recent_mouse[-1][2] - recent_mouse[0][2]
@@ -368,9 +373,7 @@ class InputDynamicsMonitor:
         scroll_frequency = len(recent_scrolls)
 
         # Engagement score (derived)
-        engagement = self._calculate_engagement(
-            keystroke_rate, mouse_velocity, idle_time, click_frequency
-        )
+        engagement = self._calculate_engagement(keystroke_rate, mouse_velocity, idle_time, click_frequency)
 
         return InputDynamicsData(
             keystroke_rate=keystroke_rate,
@@ -395,7 +398,7 @@ class InputDynamicsMonitor:
         idle_score = max(0.0, 1.0 - idle_time / 30.0)  # 30s idle = 0
         click_score = min(1.0, click_frequency / 10.0)  # 10 clicks/min = max
 
-        return (keystroke_score * 0.3 + mouse_score * 0.2 + idle_score * 0.3 + click_score * 0.2)
+        return keystroke_score * 0.3 + mouse_score * 0.2 + idle_score * 0.3 + click_score * 0.2
 
 
 # ── Neural Bridge Core ──

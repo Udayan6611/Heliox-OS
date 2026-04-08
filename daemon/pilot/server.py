@@ -1205,12 +1205,15 @@ class PilotServer:
         logger.info("Pilot daemon ready")
 
         # Announce new features to connected clients
-        if hasattr(self, '_new_features_announcement') and self._new_features_announcement:
+        if hasattr(self, "_new_features_announcement") and self._new_features_announcement:
             await asyncio.sleep(1)  # Give clients time to connect
-            await self._broadcast_notification("feature_announcement", {
-                "message": self._new_features_announcement,
-                "version": "0.6.0",
-            })
+            await self._broadcast_notification(
+                "feature_announcement",
+                {
+                    "message": self._new_features_announcement,
+                    "version": "0.6.0",
+                },
+            )
 
     async def stop(self) -> None:
         self._running = False

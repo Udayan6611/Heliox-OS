@@ -74,6 +74,7 @@ CHANGELOG = {
 
 def get_state_dir() -> Path:
     from pilot.config import STATE_DIR
+
     return STATE_DIR
 
 
@@ -128,11 +129,13 @@ def get_full_changelog() -> list[dict[str, Any]]:
         else:
             # String feature - convert to dict
             for feat_name in ver_features:
-                features.append({
-                    "name": feat_name,
-                    "version": ver,
-                    "date": CHANGELOG[ver]["date"],
-                })
+                features.append(
+                    {
+                        "name": feat_name,
+                        "version": ver,
+                        "date": CHANGELOG[ver]["date"],
+                    }
+                )
     return features
 
 
