@@ -255,6 +255,9 @@ USER_CONTEXT_TEMPLATE = """\
 User preferences and history:
 {context}
 
+Current screen context (what the user is looking at right now):
+{screen_context}
+
 User request: {request}
 """
 
@@ -396,7 +399,7 @@ class Planner:
 
         return None  # Not a simple command — use LLM
 
-    async def plan(self, user_input: str, error_context: str = "") -> ActionPlan:
+    async def plan(self, user_input: str, error_context: str = "", screen_context: str = "") -> ActionPlan:
         """Generate an action plan from a natural language request."""
         try:
             # Fast-path: skip LLM for simple, pattern-matchable commands
@@ -419,6 +422,7 @@ class Planner:
             else:
                 prompt = USER_CONTEXT_TEMPLATE.format(
                     context=context or "No prior context.",
+                    screen_context=screen_context or "Not available.",
                     request=user_input,
                 )
 

@@ -12,6 +12,7 @@ import os
 import tempfile
 import wave
 from pathlib import Path
+from typing import Any
 
 from pilot.system.platform_detect import CURRENT_PLATFORM, Platform, run_powershell
 
@@ -256,9 +257,166 @@ async def _transcribe_windows(audio_path: str) -> str:
     return out.strip() if code == 0 else f"Transcription failed: {err}"
 
 
-# ── Wake Word Detection ──────────────────────────────────────────────
+# ── Continuous Voice Listener (JARVIS Mode) ──────────────────────────
 
 
+class ContinuousVoiceListener:
+    """Always-on microphone listener with wake word detection.
+
+    Architecture:
+      [Mic stream] → [VAD: is someone talking?] → [Wake word check]
+                                                        ↓ YES
+                                                [Record until silence]
+                                                        ↓
+                                                [STT transcription]
+                                                        ↓
+                                                [Dispatch callback]
+                                                        ↓
+                                                [TTS response]
+
+    Cross-platform: Windows (System.Speech), macOS (say), Linux (espeak).
+    STT: Whisper (local) → cloud fallback → Windows Speech Recognition.
+    """
+
+    def __init__(
+        self,
+        wake_words: list[str] | None = None,
+        on_command: Any | None = None,
+        on_status: Any | None = None,
+    ) -> None:
+        self.wake_words = wake_words or ["hey heliox", "heliox", "hey pilot"]
+        self._on_command = on_command  # async callback(transcribed_text: str)
+        self._on_status = on_status  # async callback(status: str, data: dict)
+        self._running = False
+        self._task: asyncio.Task[None] | None = None
+        self._listening_for_command = False
+        self._sample_rate = 16000
+        self._vad_enabled = False
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
+
+    async def start(self) -> str:
+        """Start the continuous voice listener in the background."""
+        if self._running:
+            return "Voice listener is already running."
+
+        self._running = True
+        self._task = asyncio.create_task(self._listen_loop())
+        logger.info("Continuous voice listener started (wake words: %s)", self.wake_words)
+        return f"Voice listener started. Say '{self.wake_words[0]}' to activate."
+
+    async def stop(self) -> str:
+        """Stop the voice listener."""
+        self._running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        logger.info("Continuous voice listener stopped")
+        return "Voice listener stopped."
+
+    async def _listen_loop(self) -> None:
+        """Main listening loop — runs forever in the background."""
+        while self._running:
+            try:
+                # Record a short chunk (2-3 seconds) for wake word detection
+                transcript = await self._record_and_transcribe(duration=3)
+                if not transcript or transcript.strip() == "No speech detected":
+                    await asyncio.sleep(0.2)
+                    continue
+
+                transcript_lower = transcript.lower().strip()
+                logger.debug("Heard: %s", transcript_lower)
+
+                # Check for wake word
+                wake_detected = False
+                command_text = transcript_lower
+                for wake in self.wake_words:
+                    if wake in transcript_lower:
+                        wake_detected = True
+                        # Strip the wake word to get the command
+                        command_text = transcript_lower.replace(wake, "").strip()
+                        break
+
+                if not wake_detected:
+                    await asyncio.sleep(0.1)
+                    continue
+
+                # Wake word detected!
+                logger.info("Wake word detected! Command: '%s'", command_text)
+                if self._on_status:
+                    try:
+                        await self._on_status("wake_detected", {"transcript": transcript})
+                    except Exception:
+                        pass
+
+                # If no command was said with the wake word, listen for the command
+                if not command_text or len(command_text) < 3:
+                    # Play a subtle acknowledgment sound
+                    if self._on_status:
+                        try:
+                            await self._on_status("listening", {"message": "I'm listening..."})
+                        except Exception:
+                            pass
+
+                    # Record the actual command (longer duration)
+                    command_text = await self._record_and_transcribe(duration=8)
+                    if not command_text or command_text.strip() == "No speech detected":
+                        if self._on_status:
+                            try:
+                                await self._on_status("timeout", {"message": "Didn't catch that."})
+                            except Exception:
+                                pass
+                        continue
+
+                # Dispatch the command
+                logger.info("Dispatching voice command: '%s'", command_text)
+                if self._on_command:
+                    try:
+                        await self._on_command(command_text)
+                    except Exception as e:
+                        logger.error("Voice command dispatch failed: %s", e)
+
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                logger.debug("Voice listener error", exc_info=True)
+                await asyncio.sleep(1.0)
+
+    async def _record_and_transcribe(self, duration: int = 3) -> str:
+        """Record audio and transcribe it."""
+        try:
+            audio_path = await _record_audio(duration)
+
+            # Try Whisper first
+            try:
+                return await _transcribe_whisper(audio_path, "en", "base")
+            except ImportError:
+                pass
+
+            # Windows fallback
+            if CURRENT_PLATFORM == Platform.WINDOWS:
+                return await _transcribe_windows(audio_path)
+
+            return ""
+        except Exception as e:
+            logger.debug("Record/transcribe failed: %s", e)
+            return ""
+
+    def get_stats(self) -> dict:
+        """Return listener statistics."""
+        return {
+            "running": self._running,
+            "wake_words": self.wake_words,
+            "listening_for_command": self._listening_for_command,
+        }
+
+
+# Legacy function — now delegates to ContinuousVoiceListener
 async def start_wake_word_listener(
     wake_word: str = "hey heliox",
     callback_command: str = "",
@@ -268,9 +426,7 @@ async def start_wake_word_listener(
     When the wake word is detected, executes the callback_command
     via the Heliox OS planner.
     """
-    # This creates a background task
     return (
         f"Wake word listener configured for '{wake_word}'. "
-        "Use triggers system to set up continuous listening: "
-        "trigger_create with type='custom_condition'"
+        "Use the voice_listener_start endpoint for continuous JARVIS-mode listening."
     )

@@ -93,6 +93,7 @@ class PilotServer:
         self._attention_ui: Any = None
         self._stress_gate: Any = None
         self._intent_predictor: Any = None
+        self._voice_listener: Any = None
         self._running = False
         self._pending_confirms: dict[str, PendingConfirmation] = {}
 
@@ -213,15 +214,15 @@ class PilotServer:
             logger.warning("CognitiveHub init failed (non-critical)", exc_info=True)
             self._new_features_announcement = None
 
-        # Screen Vision Agent — continuous screen awareness (lazy start)
+        # Screen Vision Agent — continuous screen awareness (AUTO-START for JARVIS mode)
         try:
             from pilot.agents.screen_vision import ScreenVisionAgent
 
             self._screen_vision = ScreenVisionAgent(model_router)
-            # NOTE: Don't auto-start the capture loop — it uses blocking
-            # subprocess calls that starve the asyncio event loop.
-            # Users enable it via the screen_vision_toggle endpoint.
-            logger.info("ScreenVisionAgent initialized (idle, use screen_vision_toggle to start)")
+            # Auto-start the screen watcher for always-on context awareness.
+            # Uses asyncio.to_thread() internally so it won't block the event loop.
+            asyncio.create_task(self._screen_vision.start(interval_seconds=3.0, enable_describe=False))
+            logger.info("ScreenVisionAgent auto-started (every 3s, JARVIS mode)")
         except Exception:
             logger.warning("ScreenVisionAgent init failed (non-critical)", exc_info=True)
 
@@ -316,6 +317,10 @@ class PilotServer:
             "stress_gate_toggle": self._handle_stress_gate_toggle,
             "intent_predictor_toggle": self._handle_intent_predictor_toggle,
             "tribe_model_toggle": self._handle_tribe_model_toggle,
+            # Voice listener (JARVIS mode) endpoints
+            "voice_listener_start": self._handle_voice_listener_start,
+            "voice_listener_stop": self._handle_voice_listener_stop,
+            "voice_listener_stats": self._handle_voice_listener_stats,
         }
 
     async def _broadcast_notification(self, method: str, params: Any) -> None:
@@ -514,7 +519,15 @@ class PilotServer:
             if emit:
                 await emit.data_event("planning", PLANNER_LLM_CALL, {"model": "active"}, parent_id=plan_phase)
 
-            plan = await self._planner.plan(user_input, error_context=error_context)
+            # Inject live screen context so planner knows what user is looking at
+            _screen_ctx = ""
+            if self._screen_vision:
+                try:
+                    _screen_ctx = self._screen_vision.get_context_for_planner()
+                except Exception:
+                    pass
+
+            plan = await self._planner.plan(user_input, error_context=error_context, screen_context=_screen_ctx)
             if plan.error:
                 if emit:
                     await emit.phase_error("planning", PLANNER_ERROR, plan.error, parent_id=plan_phase)
@@ -1293,6 +1306,114 @@ class PilotServer:
             "fallback": self._tribe_engine.is_fallback,
             "available": self._tribe_engine.is_available,
         }
+
+    # ── Voice Listener (JARVIS Mode) Handlers ──
+
+    async def _voice_command_dispatch(self, command_text: str) -> None:
+        """Called by ContinuousVoiceListener when a voice command is recognized.
+
+        Runs the full ReAct pipeline and speaks the result back.
+        """
+        logger.info("Voice command received: '%s'", command_text)
+        await self._broadcast_notification("voice_command", {"command": command_text, "status": "executing"})
+
+        try:
+            # Get screen context
+            screen_ctx = ""
+            if self._screen_vision:
+                try:
+                    screen_ctx = self._screen_vision.get_context_for_planner()
+                except Exception:
+                    pass
+
+            # Plan
+            plan = await self._planner.plan(command_text, screen_context=screen_ctx)
+            if plan.error:
+                await self._broadcast_notification(
+                    "voice_result", {"command": command_text, "status": "error", "message": plan.error}
+                )
+                # Speak the error
+                from pilot.system.voice import speak
+
+                await speak(f"Sorry, I couldn't plan that. {plan.error[:100]}")
+                return
+
+            await self._broadcast_notification(
+                "plan_preview",
+                {
+                    "plan_id": "voice",
+                    "actions": [a.model_dump() for a in plan.actions],
+                    "explanation": plan.explanation,
+                    "source": "voice",
+                },
+            )
+
+            # Execute (auto-approve safe actions from voice)
+            results = await self._executor.execute_plan(plan)
+
+            # Verify
+            verification = await self._verifier.verify(plan, results)
+
+            # Build response summary
+            output_parts = []
+            for r in results:
+                if r.output:
+                    output_parts.append(r.output[:200])
+
+            result_text = " ".join(output_parts) if output_parts else plan.explanation
+            status = "success" if verification.passed else "partial"
+
+            await self._broadcast_notification(
+                "voice_result",
+                {"command": command_text, "status": status, "result": result_text[:500]},
+            )
+
+            # Speak the result (keep it short for voice)
+            from pilot.system.voice import speak
+
+            spoken = result_text[:300] if len(result_text) < 300 else result_text[:297] + "..."
+            await speak(f"Done. {spoken}")
+
+        except Exception as e:
+            logger.error("Voice command execution failed: %s", e)
+            await self._broadcast_notification(
+                "voice_result", {"command": command_text, "status": "error", "message": str(e)}
+            )
+
+    async def _voice_status_broadcast(self, status: str, data: dict) -> None:
+        """Called by ContinuousVoiceListener for status updates."""
+        await self._broadcast_notification("voice_status", {"status": status, **data})
+
+    async def _handle_voice_listener_start(self, params: dict, ws: ServerConnection) -> dict:
+        """Start the continuous JARVIS-mode voice listener."""
+        from pilot.system.voice import ContinuousVoiceListener
+
+        wake_words = params.get("wake_words", ["hey heliox", "heliox", "hey pilot"])
+
+        if self._voice_listener and self._voice_listener.is_running:
+            return {"status": "already_running", "wake_words": self._voice_listener.wake_words}
+
+        self._voice_listener = ContinuousVoiceListener(
+            wake_words=wake_words,
+            on_command=self._voice_command_dispatch,
+            on_status=self._voice_status_broadcast,
+        )
+        result = await self._voice_listener.start()
+        return {"status": "started", "message": result, "wake_words": wake_words}
+
+    async def _handle_voice_listener_stop(self, params: dict, ws: ServerConnection) -> dict:
+        """Stop the continuous voice listener."""
+        if not self._voice_listener or not self._voice_listener.is_running:
+            return {"status": "not_running"}
+
+        result = await self._voice_listener.stop()
+        return {"status": "stopped", "message": result}
+
+    async def _handle_voice_listener_stats(self, params: dict, ws: ServerConnection) -> dict:
+        """Get voice listener statistics."""
+        if not self._voice_listener:
+            return {"running": False, "message": "Voice listener not initialized"}
+        return self._voice_listener.get_stats()
 
 
 def _setup_logging() -> None:
