@@ -1,43 +1,45 @@
 ---
-name: Bug Report
-about: Report a bug or unexpected behavior in Heliox OS
-title: "[BUG] "
+name: Bug report
+about: Report something that isn't working correctly
+title: "[Bug] "
 labels: bug
 assignees: ''
 ---
 
-## 🐛 Bug Description
-A clear description of what the bug is.
+## Describe the bug
 
-## 📋 Steps to Reproduce
-1. Go to '...'
-2. Click on '...'
-3. Type '...'
-4. See error
+<!-- A clear description of what the bug is -->
 
-## ✅ Expected Behavior
-What you expected to happen.
+## Steps to reproduce
 
-## ❌ Actual Behavior
-What actually happened.
+1.
+2.
+3.
 
-## 🖥️ Environment
-- **OS**: [e.g., Windows 11, macOS 14, Ubuntu 22.04]
-- **Heliox OS Version**: [e.g., v0.2.0]
-- **Python Version**: [e.g., 3.12.6]
-- **Node.js Version**: [e.g., 20.x]
-- **LLM Provider**: [e.g., Gemini, OpenAI, Ollama]
+## Expected behaviour
 
-## 📸 Screenshots / Logs
-If applicable, add screenshots or paste console error logs.
+<!-- What you expected to happen -->
 
-<details>
-<summary>Console Logs</summary>
+## Actual behaviour
+
+<!-- What actually happened. Include error messages or screenshots if possible -->
+
+## Environment
+
+- OS: (e.g. Windows 11 / Ubuntu 24.04 / macOS Sequoia)
+- Heliox OS version: (e.g. v0.4.6)
+- Python version: (e.g. 3.11.8)
+- LLM provider: (e.g. Ollama / Gemini / OpenAI)
+- LLM model: (e.g. llama3.1:8b)
+
+## Logs
+
+<!-- Paste relevant daemon logs here (from ~/.heliox/logs/) -->
 
 ```
-Paste logs here
+paste logs here
 ```
-</details>
 
-## 📝 Additional Context
-Any other context about the problem.
+## Additional context
+
+<!-- Anything else that might help diagnose the issue -->
