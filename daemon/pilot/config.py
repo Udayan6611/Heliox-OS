@@ -120,47 +120,41 @@ class PilotConfig:
 logger = logging.getLogger("pilot.config")
 
 def _validate_config_types(raw: dict) -> None:
-    """Validate the data types of the loaded TOML configuration."""
+    """Validate that the user's config has no typos and uses correct types."""
     expected_types = {
         "model": {
-            "provider": str,
-            "ollama_base_url": str,
-            "ollama_model": str,
-            "mode": str,
-            "gpu_memory_limit_mb": int,
-            "idle_unload_seconds": int,
-            "cloud_provider": str,
-            "cloud_model": str,
-            "rate_limit_enabled": bool,
-            "rate_limit_rpm": int,
-            "rate_limit_burst": int,
+            "provider": str, "ollama_base_url": str, "ollama_model": str,
+            "mode": str, "gpu_memory_limit_mb": int, "idle_unload_seconds": int,
+            "cloud_provider": str, "cloud_model": str, "rate_limit_enabled": bool,
+            "rate_limit_rpm": int, "rate_limit_burst": int,
         },
         "security": {
-            "root_enabled": bool,
-            "confirm_tier2": bool,
-            "dry_run": bool,
-            "snapshot_on_destructive": bool,
-            "snapshot_backend": str,
-            "snapshot_retention_count": int,
-            "snapshot_retention_days": int,
+            "root_enabled": bool, "confirm_tier2": bool, "dry_run": bool,
+            "snapshot_on_destructive": bool, "snapshot_backend": str,
+            "snapshot_retention_count": int, "snapshot_retention_days": int,
             "unrestricted_shell": bool,
         },
         "server": {
-            "host": str,
-            "port": int,
-            "auth_token": str,
+            "host": str, "port": int, "auth_token": str,
         }
     }
 
-    for section, keys in expected_types.items():
+    for section, expected_keys in expected_types.items():
         if section in raw and isinstance(raw[section], dict):
-            for key, expected_type in keys.items():
-                if key in raw[section]:
-                    value = raw[section][key]
-                    if not isinstance(value, expected_type):
-                        error_msg = f"Invalid config: '{section}.{key}' must be {expected_type.__name__}, got {type(value).__name__}."
-                        logger.error(error_msg)
-                        raise ValueError(error_msg)
+            # We iterate over the USER'S keys to find typos
+            for actual_key, actual_value in raw[section].items():
+                # 1. Catch Typos (Unknown Keys)
+                if actual_key not in expected_keys:
+                    error_msg = f"Invalid config key found: '{section}.{actual_key}'. Please check for typos."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                
+                # 2. Catch Wrong Types
+                expected_type = expected_keys[actual_key]
+                if not isinstance(actual_value, expected_type):
+                    error_msg = f"Invalid type: '{section}.{actual_key}' must be {expected_type.__name__}, got {type(actual_value).__name__}."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
 
 def _merge_config(config: PilotConfig, raw: dict[str, Any]) -> PilotConfig:
     if "model" in raw:
