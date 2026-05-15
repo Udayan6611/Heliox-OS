@@ -67,6 +67,11 @@ class SecurityConfig:
     snapshot_retention_count: int = 10
     snapshot_retention_days: int = 7
     unrestricted_shell: bool = False  # Allow ANY shell command (bypass whitelist)
+    # Code execution sandbox — isolates agent-generated code from the host OS
+    sandbox_mode: str = "auto"  # "auto" | "docker" | "restricted" | "none"
+    sandbox_memory_mb: int = 128  # memory cap applied inside the sandbox (MB)
+    sandbox_timeout: int = 30  # max wall-clock seconds for sandboxed execution
+    sandbox_network: bool = False  # allow outbound network inside the sandbox
 
 
 @dataclass
@@ -98,6 +103,7 @@ class PilotConfig:
         if CONFIG_FILE.exists():
             try:
                 raw = tomllib.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+                _validate_config_types(raw)
                 _validate_config_types(raw)  # <-- Our new validation check
                 config = _merge_config(config, raw)
             except Exception as e:
@@ -149,6 +155,10 @@ def _validate_config_types(raw: dict) -> None:
             "snapshot_retention_count": int,
             "snapshot_retention_days": int,
             "unrestricted_shell": bool,
+            "sandbox_mode": str,
+            "sandbox_memory_mb": int,
+            "sandbox_timeout": int,
+            "sandbox_network": bool,
         },
         "server": {
             "host": str,
