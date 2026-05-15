@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -174,9 +173,7 @@ async def test_process_list_windows_fallback_uses_powershell(processes_module, m
 async def test_process_list_linux_fallback_filters_lines(processes_module, monkeypatch):
     remove_psutil(monkeypatch)
     monkeypatch.setattr(processes_module, "CURRENT_PLATFORM", DummyPlatform.LINUX)
-    processes_module.run_command = AsyncMock(
-        return_value=(0, "PID CMD\n1 python app.py\n2 nginx\n3 PYTHON worker", "")
-    )
+    processes_module.run_command = AsyncMock(return_value=(0, "PID CMD\n1 python app.py\n2 nginx\n3 PYTHON worker", ""))
 
     result = await processes_module.process_list(filter_name="python")
 
