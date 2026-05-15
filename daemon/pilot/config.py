@@ -127,6 +127,8 @@ def _validate_config_types(raw: dict) -> None:
             "mode": str, "gpu_memory_limit_mb": int, "idle_unload_seconds": int,
             "cloud_provider": str, "cloud_model": str, "rate_limit_enabled": bool,
             "rate_limit_rpm": int, "rate_limit_burst": int,
+            # NEW: PR #98 Budget Keys
+            "budget_enabled": bool, "budget_monthly_limit_usd": float,
         },
         "security": {
             "root_enabled": bool, "confirm_tier2": bool, "dry_run": bool,
