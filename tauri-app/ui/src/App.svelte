@@ -697,6 +697,18 @@
 
   .error-msg .msg-label { color: var(--danger); }
 
+  /* Streaming messages */
+  .message.system.streaming {
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--accent);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { border-left-color: var(--accent); }
+    50% { border-left-color: var(--accent-hover); }
+  }
+
   /* Plan messages */
   .plan-msg {
     background: var(--bg-tertiary);

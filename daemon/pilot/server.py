@@ -114,6 +114,7 @@ class PilotServer:
         self._voice_listener: Any = None
         self._autonomous: Any = None
         self._proactive: Any = None
+        self._budget_tracker: Any = None
         self._running = False
         self._pending_confirms: dict[str, PendingConfirmation] = {}
 
@@ -145,6 +146,14 @@ class PilotServer:
 
         self._vault = KeyVault(self.config)
         model_router = ModelRouter(self.config, self._vault)
+        await model_router.initialize()
+
+        from pilot.models.budget_tracker import BudgetTracker
+
+        self._budget_tracker = BudgetTracker(self.config.model, str(DB_FILE))
+        await self._budget_tracker.initialize()
+        model_router.set_budget_tracker(self._budget_tracker)
+
         audit = AuditLogger()
         validator = ActionValidator(self.config)
         permissions = PermissionChecker(self.config)
@@ -387,6 +396,9 @@ class PilotServer:
             "proactive_stats": self._handle_proactive_stats,
             "proactive_accept": self._handle_proactive_accept,
             "proactive_dismiss": self._handle_proactive_dismiss,
+            # Budget tracking endpoints
+            "budget_stats": self._handle_budget_stats,
+            "budget_reset": self._handle_budget_reset,
         }
 
     async def _broadcast_notification(self, method: str, params: Any) -> None:
@@ -612,7 +624,16 @@ class PilotServer:
                 except Exception:
                     pass
 
-            plan = await self._planner.plan(user_input, error_context=error_context, screen_context=_screen_ctx)
+            # Create token stream callback for real-time LLM response streaming
+            async def stream_token(token: str) -> None:
+                await ws.send(_notification("token_stream", {"token": token}))
+
+            # Only enable streaming on the first attempt (not on retries)
+            stream_callback = stream_token if attempt == 0 else None
+
+            plan = await self._planner.plan(
+                user_input, error_context=error_context, screen_context=_screen_ctx, stream_callback=stream_callback
+            )
             if plan.error:
                 if emit:
                     await emit.phase_error("planning", PLANNER_ERROR, plan.error, parent_id=plan_phase)
@@ -1791,10 +1812,27 @@ class PilotServer:
             await self._reflector.close()
         if self._memory:
             await self._memory.close()
+        if self._budget_tracker:
+            await self._budget_tracker.close()
         # Unload TRIBE v2 model
         if self._tribe_engine and self._tribe_engine.is_loaded:
             self._tribe_engine.unload_model()
         logger.info("Pilot daemon stopped")
+
+    # ── Budget Tracking Handlers ──
+
+    async def _handle_budget_stats(self, params: dict, ws: ServerConnection) -> dict:
+        """Return current-month token usage and cost summary."""
+        if not self._budget_tracker:
+            return {}
+        return await self._budget_tracker.get_stats()
+
+    async def _handle_budget_reset(self, params: dict, ws: ServerConnection) -> dict:
+        """Delete all token-usage records for the current month."""
+        if not self._budget_tracker:
+            return {"status": "ok"}
+        await self._budget_tracker.reset_current_month()
+        return {"status": "ok"}
 
     # ── Cognitive Intelligence (TRIBE v2) Handlers ──
 
