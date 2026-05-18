@@ -78,18 +78,14 @@ class MemoryStore:
         self._init_workspace_index()
 
         if self._checkpoint_interval_seconds > 0:
-            self._checkpoint_task = asyncio.create_task(
-                self._periodic_checkpoint_loop()
-            )
+            self._checkpoint_task = asyncio.create_task(self._periodic_checkpoint_loop())
             logger.info(
                 "Memory WAL checkpoint scheduler started (interval=%ss)",
                 self._checkpoint_interval_seconds,
             )
 
         if router and self._pruning_interval_seconds > 0:
-            self._pruning_task = asyncio.create_task(
-                self._periodic_pruning_loop(router)
-            )
+            self._pruning_task = asyncio.create_task(self._periodic_pruning_loop(router))
             logger.info("Semantic memory pruning scheduler started.")
 
     def _init_workspace_index(self) -> None:
@@ -218,9 +214,7 @@ class MemoryStore:
             # 5. Commit Macro-Node & Prune Granular Logs
             await self._commit_and_prune(macro_summary, cluster_ids)
 
-    async def _commit_and_prune(
-        self, macro_summary: str, old_chroma_ids: list[str]
-    ) -> None:
+    async def _commit_and_prune(self, macro_summary: str, old_chroma_ids: list[str]) -> None:
         """Insert the new macro-learning and delete the granular logs."""
         now = datetime.now(UTC).isoformat()
         macro_id_str = f"macro-{now}"
@@ -239,9 +233,7 @@ class MemoryStore:
             # You will need to parse the timestamp out of the 'history-{timestamp}' string
             for c_id in old_chroma_ids:
                 ts = c_id.replace("history-", "")
-                await db.execute(
-                    "DELETE FROM action_history WHERE timestamp = ?", (ts,)
-                )
+                await db.execute("DELETE FROM action_history WHERE timestamp = ?", (ts,))
 
             await db.commit()
 
@@ -330,9 +322,7 @@ class MemoryStore:
                         results["metadatas"][0],
                         strict=False,
                     ):
-                        parts.append(
-                            f'  - "{doc}" (result: {meta.get("explanation", "N/A")})'
-                        )
+                        parts.append(f'  - "{doc}" (result: {meta.get("explanation", "N/A")})')
 
             except Exception:
                 logger.debug("ChromaDB query failed", exc_info=True)
@@ -407,9 +397,7 @@ class MemoryStore:
             return None
 
         async with self._pool.read() as db:
-            cursor = await db.execute(
-                "SELECT value FROM user_preferences WHERE key = ?", (key,)
-            )
+            cursor = await db.execute("SELECT value FROM user_preferences WHERE key = ?", (key,))
             row = await cursor.fetchone()
             await cursor.close()
 
