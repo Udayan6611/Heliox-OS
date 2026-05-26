@@ -29,15 +29,17 @@ from pilot.agents.base_agent import (
 
 
 class TaskPriority(IntEnum):
-    USER_REALTIME = 0     # Voice commands, UI clicks (Immediate)
-    SYSTEM_CRITICAL = 1   # OS-level alerts
+    USER_REALTIME = 0  # Voice commands, UI clicks (Immediate)
+    SYSTEM_CRITICAL = 1  # OS-level alerts
     BACKGROUND_BATCH = 2  # Local file indexing, scraping
+
 
 @dataclass(order=True)
 class PrioritizedTask:
     priority: TaskPriority
     task_id: str = field(compare=False)
     coro: Any = field(compare=False)
+
 
 if TYPE_CHECKING:
     from pilot.models.router import ModelRouter

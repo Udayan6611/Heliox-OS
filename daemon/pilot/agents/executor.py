@@ -433,7 +433,7 @@ class Executor:
                 continue
 
             # --- PREEMPTIVE SCHEDULER YIELD POINT ---
-            if orchestrator and hasattr(orchestrator, 'background_allowed'):
+            if orchestrator and hasattr(orchestrator, "background_allowed"):
                 await asyncio.sleep(0)  # Micro-yield to the event loop
                 if not orchestrator.background_allowed.is_set():
                     logger.info("Executor: Preempted! Freezing background execution until high-priority task finishes.")
